@@ -1,1 +1,2 @@
-# EG_Bootcamp
+# Bootcamp Homeworks
+Artsiom Samasadau
