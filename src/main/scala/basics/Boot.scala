@@ -1,4 +1,4 @@
-package com.evo.basics
+package basics
 
 import scala.annotation.tailrec
 
