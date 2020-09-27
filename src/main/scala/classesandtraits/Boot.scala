@@ -1,7 +1,5 @@
 package classesandtraits
 
-import classesandtraits.Boot.Cube.SideCount
-
 object MathHelper {
   implicit class PowDouble(input: Double){
     def ^(exponent: Double): Double  = {
@@ -119,6 +117,7 @@ object Boot extends App {
   }
 
   final case class Cube(coordinates: Coordinates3D, side: Double) extends Shapes3D with Movable[Cube, Coordinates3D] {
+    import classesandtraits.Boot.Cube._
 
     override def surfaceArea: Double = SideCount * side ^ 2
 
