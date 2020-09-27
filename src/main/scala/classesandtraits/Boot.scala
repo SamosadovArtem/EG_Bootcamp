@@ -2,20 +2,16 @@ package classesandtraits
 
 import classesandtraits.Boot.Cube.SideCount
 
-object Helper {
-  trait Pow[A] {
-    def ^(exponent: A): A
-  }
-
-  implicit class PowDouble(input: Double) extends Pow[Double] {
-    def ^(exponent: Double)  = {
+object MathHelper {
+  implicit class PowDouble(input: Double){
+    def ^(exponent: Double): Double  = {
       Math.pow(input, exponent)
     }
   }
 }
 
 object Boot extends App {
-  import classesandtraits.Helper._
+  import classesandtraits.MathHelper._
   /*
   Homework
 
@@ -43,8 +39,8 @@ object Boot extends App {
   }
 
   sealed trait Bounded {
-    def minCoords: Array[Coordinates]
-    def maxCoords: Array[Coordinates]
+    def minCoords: Array[Double]
+    def maxCoords: Array[Double]
   }
 
   sealed trait Shape[C <: Coordinates] extends Located[C] with Bounded
@@ -62,16 +58,6 @@ object Boot extends App {
     def move(coordinates: C): Shape[C]
   }
 
-  final case class Point(coordinates: Coordinates2D) extends Shape[Coordinates2D] with Movable[Point, Coordinates2D] {
-    override def move(moveTo: Coordinates2D): Shape[Coordinates2D] = Point(Coordinates2D(coordinates.x + moveTo.x, coordinates.y + moveTo.y))
-
-    override def minCoords: Array[Coordinates] = Array(coordinates)
-
-    override def maxCoords: Array[Coordinates] = Array(coordinates)
-
-    override def coords: Array[Coordinates2D] = Array(coordinates)
-  }
-
   final case class Circle(coordinates: Coordinates2D, radius: Double) extends Shape2D with Movable[Circle, Coordinates2D] {
     override def area: Double = math.Pi * radius * radius
 
@@ -79,9 +65,17 @@ object Boot extends App {
 
     override def coords: Array[Coordinates2D] = Array(coordinates)
 
-    override def minCoords: Array[Coordinates] = Array(coordinates)
+    override def minCoords: Array[Double] = {
+      val minX = coordinates.x + radius
+      val minY = coordinates.y - radius
+      Array(minX, minY)
+    }
 
-    override def maxCoords: Array[Coordinates] = Array(coordinates)
+    override def maxCoords: Array[Double] = {
+      val maxX = coordinates.x - radius
+      val maxY = coordinates.y + radius
+      Array(maxX, maxY)
+    }
   }
 
   final case class Rectangle(coordinates: Coordinates2D, sideA: Double, sideB: Double) extends Shape2D with Movable[Rectangle, Coordinates2D] {
@@ -101,14 +95,14 @@ object Boot extends App {
       Array(firstPoint, secondPoint, thirdPoint, fourthPoint)
     }
 
-    override def minCoords: Array[Coordinates] = {
+    override def minCoords: Array[Double] = {
       val minX = coords.map(coord => coord.x).min
       val minY = coords.map(coord => coord.y).min
       Array(minX, minY)
 
     }
 
-    override def maxCoords: Array[Coordinates] = {
+    override def maxCoords: Array[Double] = {
       val maxX = coords.map(coord => coord.x).max
       val maxY = coords.map(coord => coord.y).max
       Array(maxX, maxY)
@@ -119,7 +113,7 @@ object Boot extends App {
     val SideCount = 6
   }
 
-  final case class Cube(coordinates: Coordinates3D, side: Double) extends Shapes3D with Movable[Rectangle, Coordinates3D] {
+  final case class Cube(coordinates: Coordinates3D, side: Double) extends Shapes3D with Movable[Cube, Coordinates3D] {
 
     override def surfaceArea: Double = SideCount * side ^ 2
 
@@ -144,14 +138,14 @@ object Boot extends App {
 
     }
 
-    override def minCoords: Array[Coordinates] = {
+    override def minCoords: Array[Double] = {
       val minX = coords.map(coord => coord.x).min
       val minY = coords.map(coord => coord.y).min
       val minZ = coords.map(coord => coord.z).min
       Array(minX, minY, minZ)
     }
 
-    override def maxCoords: Array[Coordinates] = {
+    override def maxCoords: Array[Double] = {
       val maxX = coords.map(coord => coord.x).max
       val maxY = coords.map(coord => coord.y).max
       val maxZ = coords.map(coord => coord.z).max
