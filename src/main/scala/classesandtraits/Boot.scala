@@ -34,10 +34,15 @@ object Boot extends App {
   case class Coordinates2D(x: Double, y: Double) extends Coordinates
   case class Coordinates3D(x: Double, y: Double, z: Double) extends Coordinates
 
+  // Different shapes have different count of points ( triangle has 3 points, Rectangle has 4 points etc.
+  // In order to make this trait as generic as possible I use Array of coordinates here
   sealed trait Located[C <: Coordinates] {
     def coords: Array[C]
   }
 
+  // 2D shapes have both 2 min coordinates and 2 max coordinates ( minX, minY, maxX, maxY )
+  // 3D shape have both 3 min coordinates and 3 max coordinates ( minX, minY, minZ, maxX, maxY, maxZ) etc.
+  // In order to make this trait as generic as possible I use Array of coordinates here
   sealed trait Bounded {
     def minCoords: Array[Double]
     def maxCoords: Array[Double]
