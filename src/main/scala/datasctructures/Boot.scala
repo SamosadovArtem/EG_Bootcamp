@@ -21,7 +21,7 @@ package datasctructures
  */
 
 object Boot extends App {
-  def groupMapByValues[T](map: Map[T, Int]): List[(Set[T], Int)] = {
+  def sortConsideringEqualValues[T](map: Map[T, Int]): List[(Set[T], Int)] = {
     map.groupMap {
       case (_, v) => v
     } {
@@ -33,7 +33,7 @@ object Boot extends App {
 
   val input = Map("a" -> 1, "b" -> 2, "c" -> 4, "d" -> 1, "e" -> 0, "f" -> 2, "g" -> 2)
   val expected = List(Set("e") -> 0, Set("a", "d") -> 1, Set("b", "f", "g") -> 2, Set("c") -> 4)
-  assert(groupMapByValues(input) == expected)
+  assert(sortConsideringEqualValues(input) == expected)
 
   println("Finished successfully")
   println(s"Output for $input is $expected")
