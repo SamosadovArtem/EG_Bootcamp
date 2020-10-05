@@ -27,7 +27,7 @@ object Boot extends App {
     } {
       case (k, _) => k
     }.map {
-      case (count, allValues) => allValues.toSet -> count
+      case (number, allValues) => allValues.toSet -> number
     }.toList
   }
 
