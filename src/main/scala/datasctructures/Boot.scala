@@ -27,8 +27,10 @@ object Boot extends App {
     } {
       case (k, _) => k
     }.map {
-      case (number, allValues) => allValues.toSet -> number
-    }.toList
+      case (count, allValues) => allValues.toSet -> count
+    }.toList.sortBy {
+      case (_, num) => num
+    }
   }
 
   val input = Map("a" -> 1, "b" -> 2, "c" -> 4, "d" -> 1, "e" -> 0, "f" -> 2, "g" -> 2)
@@ -36,7 +38,7 @@ object Boot extends App {
   assert(sortConsideringEqualValues(input) == expected)
 
   println("Finished successfully")
-  println(s"Output for $input is $expected")
+  println(s"Output for $input is ${sortConsideringEqualValues(input)}")
 
 
 }
