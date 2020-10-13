@@ -8,6 +8,8 @@ import scala.collection.mutable
 
 object Boot {
 
+  val StandardHeaderSize = 12
+
   object SuperVipCollections4s {
     type SizeScore = Int
 
@@ -96,19 +98,19 @@ object Boot {
       implicit val scoredInt:  GetSizeScore[Int]  = _ => 4
       implicit val scoredLong: GetSizeScore[Long] = _ => 8
       implicit val scoredChar: GetSizeScore[Char] = _ => 2
-      implicit val scoredString: GetSizeScore[String] = value => 12 + value.length * 2
+      implicit val scoredString: GetSizeScore[String] = value => StandardHeaderSize + value.length * 2
 
       implicit def scoredList[T : GetSizeScore]: GetSizeScore[List[T]] = v =>
-        12 + v.map(_.sizeScore).sum
+        StandardHeaderSize + v.map(_.sizeScore).sum
       implicit def scoredVector[T : GetSizeScore]: GetSizeScore[Vector[T]] = v =>
-        12 + v.map(_.sizeScore).sum
+        StandardHeaderSize + v.map(_.sizeScore).sum
       implicit def scoredPackedMultiMap[K : GetSizeScore]: GetSizeScore[PackedMultiMap[K, K]] = v =>
-        12 + v.inner.map {case(k,_) => k.sizeScore}.sum + v.inner.map {case(_,v) => v.sizeScore}.sum
+        StandardHeaderSize + v.inner.map {case(k,_) => k.sizeScore}.sum + v.inner.map {case(_,v) => v.sizeScore}.sum
       implicit def scoredPackedArray[T : GetSizeScore]: GetSizeScore[Array[T]] = v => {
-        12 + v.map(_.sizeScore).sum
+        StandardHeaderSize + v.map(_.sizeScore).sum
       }
       implicit def scoredMap[K : GetSizeScore]: GetSizeScore[Map[K, K]] = v =>
-        12 + v.keysIterator.map(_.sizeScore).sum + v.values.map(_.sizeScore).sum
+        StandardHeaderSize + v.keysIterator.map(_.sizeScore).sum + v.values.map(_.sizeScore).sum
 
       implicit val fbiNote: GetSizeScore[FbiNote] = {
         case FbiNote(month, favouriteChar, watchedPewDiePieTimes)
