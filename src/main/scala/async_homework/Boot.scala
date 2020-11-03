@@ -60,10 +60,14 @@ object Boot extends App {
     linkPattern.findAllMatchIn(html).map(m => m.group(1)).toList
   }
 
-  process(List("http://google.com"))
+  args.toList match {
+    case Nil =>
+      println("Put at least one args")
+    case _ => process(args.toList)
+  }
 
   /*
-  OUTPUT:
+  OUTPUT for http://google.com:
 
   Fetching http://google.com
   Fetching server name header for http://www.google.by/imghp?hl=be&tab=wi
