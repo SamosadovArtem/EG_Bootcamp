@@ -30,9 +30,15 @@ object Boot extends App {
       serverNames
         .filter(_.isDefined)
         .map(_.get)
-        .sorted
+        .sortBy(_.toUpperCase)
         .foreach(println)
     }
+  }
+
+  args.toList match {
+    case Nil =>
+      println("Put at least one args")
+    case _ => process(args.toList)
   }
 
   private def fetchPageBody(url: String): Future[String] = {
@@ -60,12 +66,6 @@ object Boot extends App {
     linkPattern.findAllMatchIn(html).map(m => m.group(1)).toList
   }
 
-  args.toList match {
-    case Nil =>
-      println("Put at least one args")
-    case _ => process(args.toList)
-  }
-
   /*
   OUTPUT for http://google.com:
 
@@ -79,18 +79,19 @@ object Boot extends App {
   Fetching server name header for http://translate.google.by/?hl=be&tab=wT
   Fetching server name header for http://www.google.by/history/optout?hl=be
   Fetching server name header for https://accounts.google.com/ServiceLogin?hl=be&passive=true&continue=http://www.google.com/&ec=GAZAAQ
-  Fetching server name header for http://www.google.com/setprefs?sig=0_xzYKLeHm4AcQVIqIz_GSR6_kkBs%3D&amp;hl=ru&amp;source=homepage&amp;sa=X&amp;ved=0ahUKEwjulZCIq-bsAhWC4YUKHXjYBqsQ2ZgBCAU
-  Fetching server name header for http://www.google.com/setprefdomain?prefdom=BY&amp;prev=http://www.google.by/&amp;sig=K_eemF0mgvjNJv6h1O9E-xK7XrCNI%3D
+  Fetching server name header for http://www.google.com/setprefs?sig=0_Hd-aBZjv3jnCgT2ZN4xnUgnQ7NE%3D&amp;hl=ru&amp;source=homepage&amp;sa=X&amp;ved=0ahUKEwilpYOCsObsAhUQCxoKHUgyDDgQ2ZgBCAU
+  Fetching server name header for http://www.google.com/setprefdomain?prefdom=BY&amp;prev=http://www.google.by/&amp;sig=K_26Q2h9oeiSuVNCv8WSxuAI2bkIg%3D
   ESF
   ESF
   GSE
   GSE
   GSE
   GSE
+  gws
+  gws
+  gws
   HTTP server (unknown)
   YouTube Frontend Proxy
-  gws
-  gws
-  gws
+
    */
 }
