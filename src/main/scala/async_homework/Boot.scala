@@ -23,15 +23,26 @@ object Boot extends App {
 
   def process(links: List[String]) = {
     for {
-      pageBodies <- Future.sequence(links.map(fetchPageBody))
-      allUrls <- Future.sequence(pageBodies.map(findLinkUrls)).map(_.flatten)
-      serverNames <- Future.sequence(allUrls.map(fetchServerName))
+      pageBodies <- Future.sequence(
+        links.map(fetchPageBody).map(v => v.recover {
+          case err => println(s"Error during parsing body, $err"); ""
+        })
+      )
+      allUrls <- Future.sequence(pageBodies.map(findLinkUrls).map(v => v.recover {
+        case err => println(s"Error during finding links URLs, $err"); List()
+      })).map(_.flatten)
+      serverNames <- Future.sequence(
+        allUrls.map(fetchServerName).map(v => v.recover {
+          case err => println(s"Error during fetching server name, $err"); None
+        })
+      )
     } yield {
       serverNames
         .filter(_.isDefined)
         .map(_.get)
         .sortBy(_.toUpperCase)
         .foreach(println)
+      ()
     }
   }
 
