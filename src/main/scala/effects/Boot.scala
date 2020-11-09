@@ -5,7 +5,7 @@ import scala.util.{Failure, Success, Try}
 
 object Boot extends App {
 
-  final case class Pure[A](a: A) extends IO[A]
+  final private case class Pure[A](a: A) extends IO[A]
 
   final private case class Map[A, B](a: IO[A], f: A => B) extends IO[B] with (A => IO[B]) {
     override def apply(a: A): IO[B] =
@@ -13,9 +13,9 @@ object Boot extends App {
   }
   final private case class FlatMap[A, B](a: IO[A], f: A => IO[B]) extends IO[B]
 
-  final case class Delay[A](thunk: () => A) extends IO[A]
+  final private case class Delay[A](thunk: () => A) extends IO[A]
 
-  final case class IOError[A](e: Throwable) extends IO[A]
+  final private case class IOError[A](e: Throwable) extends IO[A]
 
   class IO[+A] {
 
