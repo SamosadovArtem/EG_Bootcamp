@@ -35,18 +35,13 @@ object Boot extends App {
     }
 
     @tailrec
-    private def applyAll(v: Any, chain: List[Any => Any]): Any = {
-      chain match {
-        case x :: xs =>
-          val res = x(v)
-          res match {
-            case input: IO[A] =>
-              val subResult = runInternal(input)
-              applyAll(subResult, xs)
-            case _ =>
-              applyAll(res, xs)
-          }
-        case _ => v
+    private def getInitValue[A](input: IO[A]): Any = {
+      input match {
+        case Pure(a) => a
+        case Map(a, _) => getInitValue(a)
+        case FlatMap(a, _) => getInitValue(a)
+        case Delay(f) => f()
+        case IOError(e) => e
       }
     }
 
@@ -69,17 +64,22 @@ object Boot extends App {
       }
     }
 
-
     @tailrec
-    private def getInitValue[A](input: IO[A]): Any = {
-      input match {
-        case Pure(a) => a
-        case Map(a, _) => getInitValue(a)
-        case FlatMap(a, _) => getInitValue(a)
-        case Delay(f) => f()
-        case IOError(e) => e
+    private def applyAll(v: Any, chain: List[Any => Any]): Any = {
+      chain match {
+        case x :: xs =>
+          val res = x(v)
+          res match {
+            case input: IO[A] =>
+              val subResult = runInternal(input)
+              applyAll(subResult, xs)
+            case _ =>
+              applyAll(res, xs)
+          }
+        case _ => v
       }
     }
+
     def map[B](f: A => B): IO[B] = Map(this, f)
     def flatMap[B](f: A => IO[B]): IO[B] = FlatMap(this, f)
     def *>[B](another: IO[B]): IO[B] = flatMap(_ => another)
