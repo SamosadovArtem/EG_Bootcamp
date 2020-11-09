@@ -1,5 +1,6 @@
 package effects
 
+import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
@@ -19,13 +20,6 @@ object Boot extends App {
 
   class IO[+A] {
 
-    private def runInternal(input: IO[Any]): A = {
-      val out = getInitValue(input)
-      val inputChain: List[Any => Any] = List()
-      val chain: List[Any => Any] = getChain(input, inputChain)
-      applyAll(out, chain.reverse).asInstanceOf[A]
-    }
-
     private def run(): A = {
       val out = getInitValue(this)
       val inputChain: List[Any => Any] = List()
@@ -33,7 +27,15 @@ object Boot extends App {
       applyAll(out, chain.reverse).asInstanceOf[A]
     }
 
-    def applyAll(v: Any, chain: List[Any => Any]): Any = {
+    private def runInternal(input: IO[Any]): A = {
+      val out = getInitValue(input)
+      val inputChain: List[Any => Any] = List()
+      val chain: List[Any => Any] = getChain(input, inputChain)
+      applyAll(out, chain.reverse).asInstanceOf[A]
+    }
+
+    @tailrec
+    private def applyAll(v: Any, chain: List[Any => Any]): Any = {
       chain match {
         case x :: xs =>
           val res = x(v)
@@ -48,7 +50,8 @@ object Boot extends App {
       }
     }
 
-    def getChain[A](input: IO[A], chain: List[Any => Any]): List[Any => Any] = {
+    @tailrec
+    private def getChain[A](input: IO[A], chain: List[Any => Any]): List[Any => Any] = {
       input match {
         case Pure(_) => chain
         case Map(a, f) =>
@@ -67,7 +70,8 @@ object Boot extends App {
     }
 
 
-    def getInitValue[A](input: IO[A]): Any = {
+    @tailrec
+    private def getInitValue[A](input: IO[A]): Any = {
       input match {
         case Pure(a) => a
         case Map(a, _) => getInitValue(a)
