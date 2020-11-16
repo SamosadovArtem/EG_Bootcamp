@@ -36,9 +36,9 @@ object Boot extends IOApp {
 
   object Cache {
     def of[F[_] : Clock, K, V](
-                                expiresIn: FiniteDuration,
-                                checkOnExpirationsEvery: FiniteDuration
-                              )(implicit T: Timer[F], C: Concurrent[F]): F[Cache[F, K, V]] = {
+      expiresIn: FiniteDuration,
+      checkOnExpirationsEvery: FiniteDuration
+    )(implicit T: Timer[F], C: Concurrent[F]): F[Cache[F, K, V]] = {
 
       def removeExpiredCache(cacheState: Ref[F, Map[K, (Long, V)]]): F[Unit] = for {
         now <- T.sleep(checkOnExpirationsEvery) *> Clock[F].realTime(MILLISECONDS)
