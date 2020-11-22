@@ -10,7 +10,6 @@ import org.http4s.dsl.io._
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 
-import collection.mutable.Map
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.util.Random
@@ -70,13 +69,17 @@ object Server {
     HttpRoutes.of[IO] {
       case req @ POST  -> Root / "number" => {
         req.as[GameDto].flatMap { game =>
-          req.cookies.find(_.name == ClientIdCookieName).flatMap {
-            case RequestCookie(_, id) => clientCache.get(id)
-          }
-            .map(gameData => process(gameData, game.attributes.current))
-            .map(toResponseDto)
-            .map(Ok(_))
-            .getOrElse(Forbidden(ForbiddenErrorDto()))
+          val out = for {
+            cookie <- IO.fromOption(req.cookies.find(_.name == ClientIdCookieName))(new RuntimeException("Cookie not found"))
+            gameData <- cookie match {
+              case RequestCookie(_, id) => IO.fromOption(clientCache.get(id))(new RuntimeException("User not found"))
+            }
+            gameResult <- process(gameData, game.attributes.current)
+            _ <- updateUserResult(gameResult, cookie.content, clientCache)
+            response <- Ok(toResponseDto(gameResult))
+          } yield response
+
+          out.handleErrorWith(_ => Forbidden(ForbiddenErrorDto()))
         }
       }
 
@@ -86,29 +89,26 @@ object Server {
         clientCache(id) = GameData(secretNumber, attempts)
         Ok(GameStarDto()).map(_.addCookie(ClientIdCookieName, id))
       }
-
-
-
     }
   }
 
-  private def process(game: GameData, currentNumber: Int): GameResult = {
+  private def process(game: GameData, currentNumber: Int): IO[GameResult] = {
     game.rightAnswer == currentNumber match {
-      case true if game.attempts >= 1 => GameSuccess
-      case false if game.attempts >= 1 => GameWrongResult
-      case _ => GameOver
+      case true if game.attempts >= 1 => IO(GameSuccess)
+      case false if game.attempts >= 1 => IO(GameWrongResult)
+      case _ => IO(GameOver)
     }
   }
 
-  private def updateUserResult(result: GameResult, id: String, users: mutable.Map[String, GameData]) = result match {
-    case GameSuccess | GameOver => users.remove(id)
-    case GameWrongResult => users(id) = GameData(users(id).rightAnswer, users(id).attempts - 1)
+  private def updateUserResult(result: GameResult, id: String, users: mutable.Map[String, GameData]): IO[Unit] = result match {
+    case GameSuccess | GameOver => IO.delay(users.remove(id)) *> IO.unit
+    case GameWrongResult => IO.delay((users(id) = GameData(users(id).rightAnswer, users(id).attempts - 1))) *> IO.unit
   }
 
-  private def toResponseDto(result: GameResult) = result match {
-    case GameSuccess => GameResultDto(attributes = GameResultAttributes("success"))
-    case GameWrongResult => GameResultDto(attributes = GameResultAttributes("wrong"))
-    case GameOver => GameResultDto(attributes = GameResultAttributes("failure"))
+  private def toResponseDto(result: GameResult): IO[GameResultDto] = result match {
+    case GameSuccess => IO(GameResultDto(attributes = GameResultAttributes("success")))
+    case GameWrongResult => IO(GameResultDto(attributes = GameResultAttributes("wrong")))
+    case GameOver => IO(GameResultDto(attributes = GameResultAttributes("failure")))
   }
 
 }
