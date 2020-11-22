@@ -2,10 +2,13 @@ package http
 
 import java.util.UUID
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{Blocker, ExitCode, IO, IOApp}
+import cats.implicits.catsSyntaxFlatMapOps
+import http.DTOs.{GameAttributes, GameDto}
 import io.circe.generic.auto._
 import org.http4s._
 import org.http4s.circe.CirceEntityCodec._
+import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.dsl.io._
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
@@ -18,6 +21,8 @@ object Consts {
   val ClientIdCookieName = "clientId"
   case class ClientId(value: String) extends AnyVal
   case class GameData(rightAnswer: Int, attempts: Int)
+  val Port = 8080
+  def printLine(string: String = ""): IO[Unit] = IO(println(string))
 }
 
 
@@ -83,7 +88,7 @@ object Server {
         }
       }
 
-      case req @ GET -> Root / "start" :? MinMatcher(minimum) :? MaxMatcher(maximum) :? AttemptsMatcher(attempts) => {
+      case _ @ GET -> Root / "start" :? MinMatcher(minimum) :? MaxMatcher(maximum) :? AttemptsMatcher(attempts) => {
         val id = UUID.randomUUID().toString
         val secretNumber = Random.between(minimum, maximum)
         clientCache(id) = GameData(secretNumber, attempts)
@@ -113,20 +118,96 @@ object Server {
 
 }
 
-object Boot extends IOApp {
+object Client {
+  import Consts._
+  import org.http4s.client._
+
+  case class RandomGameNumbers(min: Int, max: Int, attempts: Int)
+
+  private val backUrl = uri"http://localhost:8080"
+
+  def registerGame(client: Client[IO]) = {
+
+    for {
+      numbers <- generateRandomNumbers()
+      id <- {
+        client.get(
+          (backUrl / "start").withQueryParams(
+            Map(
+              ("min" -> numbers.min.toString),
+              ("max" -> numbers.max.toString),
+              ("attempts" -> numbers.attempts.toString)
+            )
+          )
+        )(
+          resp => resp.cookies
+            .find(_.name == ClientIdCookieName)
+            .fold(
+              throw new RuntimeException(s"Cookie with name = $ClientIdCookieName was not found")
+            )(cookie => IO.pure(cookie.content))
+        )
+      }
+    } yield (id, numbers)
+  }
+
+  def getGameResult(client: Client[IO], numbers: RandomGameNumbers, id: String): IO[Unit] = {
+    import DTOs._
+    val number = Random.between(numbers.min, numbers.max)
+
+    val req =
+      Request[IO](method = Method.POST, uri = backUrl.withPath("/number"))
+        .withEntity(GameDto(attributes = GameAttributes(number)))
+        .addCookie(ClientIdCookieName, id)
+
+    client.expect[GameResultDto](req).flatMap {
+      case GameResultDto(_, attributes) if attributes.result == "success" => printLine("You won") *> IO.unit
+      case GameResultDto(_, attributes) if attributes.result == "failure" => printLine("You lost") *> IO.unit
+      case _ => getGameResult(client, numbers, id)
+    }
+  }
+
+  private def generateRandomNumbers(): IO[RandomGameNumbers] = for {
+    min <- IO.delay(Random.between(1, 100))
+    max <- IO.delay(min + Random.between(1, 100))
+    attempts <- IO.delay(Random.between(1, 10))
+  } yield RandomGameNumbers(min, max, attempts)
+
+}
+
+object RunClient extends IOApp {
+  import Consts._
+
+  override def run(args: List[String]): IO[ExitCode] = {
+    BlazeClientBuilder[IO](ExecutionContext.global).resource
+      .parZip(Blocker[IO]).use { case (client, blocker) =>
+      for {
+        _   <- printLine(string = "Starting game and getting id:")
+        registeredGame <- Client.registerGame(client)
+        (id, numbers) = registeredGame
+        _   <- Client.getGameResult(client, numbers, id)
+        _   <- printLine("Next step")
+        _   <- printLine("-" * 8)
+      } yield ExitCode.Success
+    }
+
+  }
+}
+
+object RunServer extends IOApp {
   import Server._
+  import Consts._
 
   def httpApp () =
     gameRoutes(mutable.Map()).orNotFound
 
   override def run(args: List[String]): IO[ExitCode] = for {
     _ <- BlazeServerBuilder[IO](ExecutionContext.global)
+      .bindHttp(Port)
       .withHttpApp(httpApp())
       .serve
       .compile
       .drain
       .as(ExitCode.Success)
   } yield ExitCode.Success
-
 
 }
