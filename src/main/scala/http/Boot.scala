@@ -70,6 +70,7 @@ object Server {
   case object GameWrongResult extends GameResult
   case object GameOver extends GameResult
 
+  //mutable.Map here is unsafe from the multithread perspective, but just for test purposes
   def gameRoutes(clientCache: mutable.Map[String, GameData]) = {
     HttpRoutes.of[IO] {
       case req @ POST  -> Root / "number" => {
